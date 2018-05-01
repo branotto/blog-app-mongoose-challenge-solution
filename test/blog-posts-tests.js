@@ -83,12 +83,12 @@ describe('Blogging API resource', function()
             {
                 res = _res;
                 expect(res).to.have.status(200)
-                expect(res.body.posts).to.have.lengthOf.at.least(1);
+                expect(res.body).to.have.lengthOf.at.least(1);
                 return BlogPost.count();
             })
             .then(function(count)
             {
-                expect(res.body.posts).to.have.lengthOf(count);
+                expect(res.body).to.have.lengthOf(count);
             });
         });
 
@@ -101,18 +101,18 @@ describe('Blogging API resource', function()
             {
                 expect(res).to.have.status(200);
                 expect(res).to.be.json;
-                expect(res.body.posts).to.have.lengthOf.at.least(1);
+                expect(res.body).to.have.lengthOf.at.least(1);
 
-                res.body.posts.forEach( function(post)
+                res.body.forEach( function(post)
                     {
                         expect(post).to.be.a('object');
                         expect(post).to.include.keys(
                             'id', 'author', 'title', 'content', 'created');
                     });
-                    resPost = res.body.posts[0];
+                    resPost = res.body[0];
                     return BlogPost.findById(resPost.id);
                 })
-                .then(function(posts)
+                .then(function(post)
                 {
                     expect(resPost.author).to.equal(post.authorName);
                     expect(resPost.title).to.equal(post.title);
@@ -120,4 +120,48 @@ describe('Blogging API resource', function()
                 });
             });
         });
+
+    describe('POST endpont', function()
+    {
+        it('should add a new post', function()
+        {
+            const newPost = 
+            {
+                author: 
+                    {
+                     firstName: faker.name.firstName(),
+                    lastName: faker.name.lastName()
+                    },
+                title: faker.lorem.sentence(),
+                content: faker.lorem.text()
+            };
+
+            return chai.request(app)
+            .post('/posts')
+            .send(newPost)
+            .then(function(res)
+            {
+                expect(res).to.have.status(201);
+                expect(res).to.be.json;
+                expect(res.body).to.be.a('object');
+                expect(res.body).to.be.a('object');
+                expect(res.body).to.include.keys(
+                    'id', 'author', 'title', 'content', 'created');
+                expect(res.body.title).to.equal(newPost.title);
+                expect(res.body.id).to.not.be.null;
+                expect(res.body.content).to.equal(newPost.content);
+                expect(res.body.author).to.equal(
+                    `${newPost.author.firstName} ${newPost.author.lastName}`);
+
+                return BlogPost.findById(res.body.id);
+            })
+            .then(function(post)
+            {
+                expect(post.title).to.equal(newPost.title);
+                expect(post.content).to.equal(newPost.content);
+                expect(post.author.firstName).to.equal(newPost.author.firstName);
+                expect(post.author.lastName).to.equal(newPost.author.lastName);
+            })
+        })
+    })
 });
